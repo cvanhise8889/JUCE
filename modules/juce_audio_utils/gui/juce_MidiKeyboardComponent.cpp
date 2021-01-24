@@ -899,7 +899,9 @@ bool MidiKeyboardComponent::keyPressed (const KeyPress& key)
 
 void MidiKeyboardComponent::focusLost (FocusChangeType)
 {
+#if JUCE_IOS
     resetAnyKeysInUse();
+#endif
 }
 
 } // namespace juce
