@@ -87,7 +87,7 @@ void AudioProcessorEditor::setResizable (const bool shouldBeResizable, const boo
     {
         resizable = shouldBeResizable;
 
-        if (! resizable && constrainer == &defaultConstrainer)
+        if (!resizable && constrainer == &defaultConstrainer && !useBottomRightCornerResizer)
         {
             auto width = getWidth();
             auto height = getHeight();
@@ -97,11 +97,9 @@ void AudioProcessorEditor::setResizable (const bool shouldBeResizable, const boo
         }
     }
 
-    bool shouldHaveCornerResizer = (useBottomRightCornerResizer && shouldBeResizable);
-
-    if (shouldHaveCornerResizer != (resizableCorner != nullptr))
+    if (useBottomRightCornerResizer != (resizableCorner != nullptr))
     {
-        if (shouldHaveCornerResizer)
+        if (useBottomRightCornerResizer)
             attachResizableCornerComponent();
         else
             resizableCorner.reset();
@@ -195,7 +193,7 @@ void AudioProcessorEditor::editorResized (bool wasResized)
                                         resizerSize, resizerSize);
         }
 
-        if (! resizable)
+        if (! resizable && resizableCorner == nullptr)
             if (auto w = getWidth())
                 if (auto h = getHeight())
                     defaultConstrainer.setSizeLimits (w, h, w, h);
