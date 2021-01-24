@@ -597,6 +597,21 @@ public:
         setContentOwned (new MainContentComponent (*this), false);
        #else
         setContentOwned (new MainContentComponent (*this), true);
+        
+        if (auto editor = getAudioProcessor()->getActiveEditor())
+        {
+            if (editor->isResizable())
+            {
+                setResizable(true, false);
+                
+                if (auto constrainer = getConstrainer())
+                {
+                    auto editorConstrainer = editor->getConstrainer();
+                    constrainer->setMinimumHeight(editorConstrainer->getMinimumHeight());
+                    constrainer->setMinimumWidth(editorConstrainer->getMinimumWidth());
+                }
+            }
+        }
 
         if (auto* props = pluginHolder->settings.get())
         {
