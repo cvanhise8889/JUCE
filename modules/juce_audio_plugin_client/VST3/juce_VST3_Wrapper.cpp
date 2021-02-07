@@ -705,9 +705,22 @@ public:
     //==============================================================================
     tresult PLUGIN_API setComponentState (IBStream* stream) override
     {
-        // Cubase and Nuendo need to inform the host of the current parameter values
-        for (auto vstParamId : audioProcessor->vstParamIDs)
-            setParamNormalized (vstParamId, audioProcessor->getParamForVSTParamID (vstParamId)->getValue());
+        if (auto* pluginInstance = getPluginInstance())
+        {
+            for (auto vstParamId : audioProcessor->vstParamIDs)
+            {
+                auto paramValue = [&]
+                {
+                    if (vstParamId == JuceAudioProcessor::paramPreset)
+                        return EditController::plainParamToNormalized (JuceAudioProcessor::paramPreset,
+                                                                       pluginInstance->getCurrentProgram());
+
+                    return (double) audioProcessor->getParamForVSTParamID (vstParamId)->getValue();
+                }();
+
+                setParamNormalized (vstParamId, paramValue);
+            }
+        }
 
         if (auto* handler = getComponentHandler())
             handler->restartComponent (Vst::kParamValuesChanged);
@@ -1002,7 +1015,7 @@ private:
     friend struct Param;
 
     //==============================================================================
-    ComSmartPtr<JuceAudioProcessor> audioProcessor;
+    VSTComSmartPtr<JuceAudioProcessor> audioProcessor;
 
     struct MidiController
     {
@@ -1672,7 +1685,7 @@ private:
         //==============================================================================
         ScopedJuceInitialiser_GUI libraryInitialiser;
 
-        ComSmartPtr<JuceVST3EditController> owner;
+        VSTComSmartPtr<JuceVST3EditController> owner;
         AudioProcessor& pluginInstance;
 
         std::unique_ptr<ContentWrapperComponent> component;
@@ -2974,9 +2987,9 @@ private:
     std::atomic<int> refCount { 1 };
 
     AudioProcessor* pluginInstance;
-    ComSmartPtr<Vst::IHostApplication> host;
-    ComSmartPtr<JuceAudioProcessor> comPluginInstance;
-    ComSmartPtr<JuceVST3EditController> juceVST3EditController;
+    VSTComSmartPtr<Vst::IHostApplication> host;
+    VSTComSmartPtr<JuceAudioProcessor> comPluginInstance;
+    VSTComSmartPtr<JuceVST3EditController> juceVST3EditController;
 
     /**
         Since VST3 does not provide a way of knowing the buffer size and sample rate at any point,
@@ -3310,7 +3323,7 @@ private:
     //==============================================================================
     std::atomic<int> refCount { 1 };
     const PFactoryInfo factoryInfo;
-    ComSmartPtr<Vst::IHostApplication> host;
+    VSTComSmartPtr<Vst::IHostApplication> host;
 
     //==============================================================================
     struct ClassEntry
@@ -3332,7 +3345,7 @@ private:
     std::vector<std::unique_ptr<ClassEntry>> classes;
 
     //==============================================================================
-    template<class PClassInfoType>
+    template <class PClassInfoType>
     tresult PLUGIN_API getPClassInfo (Steinberg::int32 index, PClassInfoType* info)
     {
         if (info != nullptr)
