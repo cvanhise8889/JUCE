@@ -987,10 +987,6 @@ function(_juce_generate_icon source_target dest_target)
     get_target_property(juce_property_icon_big ${source_target} JUCE_ICON_BIG)
     get_target_property(juce_property_icon_small ${source_target} JUCE_ICON_SMALL)
 
-    if(NOT (juce_property_icon_big OR juce_property_icon_small))
-        return()
-    endif()
-
     set(icon_args)
 
     if(juce_property_icon_big)
@@ -1004,22 +1000,34 @@ function(_juce_generate_icon source_target dest_target)
     set(generated_icon)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        if(NOT icon_args)
+            return()
+        endif()
+
         set(generated_icon "${juce_library_code}/Icon.icns")
         # To get compiled properly, we need the icon before the plist is generated!
         _juce_execute_juceaide(macicon "${generated_icon}" ${icon_args})
         set_source_files_properties(${generated_icon} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        if(NOT icon_args)
+            return()
+        endif()
+
         set(generated_icon "${juce_library_code}/icon.ico")
         _juce_execute_juceaide(winicon "${generated_icon}" ${icon_args})
     elseif(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         get_target_property(generated_icon ${source_target} JUCE_CUSTOM_XCASSETS_FOLDER)
 
-        if(NOT generated_icon)
+        if(icon_args AND (NOT generated_icon))
             set(out_path "${juce_library_code}/${dest_target}")
             set(generated_icon "${out_path}/Images.xcassets")
 
             # To get compiled properly, we need iOS assets at configure time!
             _juce_execute_juceaide(iosassets "${out_path}" ${icon_args})
+        endif()
+
+        if(NOT generated_icon)
+            return()
         endif()
 
         set_target_properties(${dest_target} PROPERTIES
@@ -1797,23 +1805,9 @@ function(_juce_set_fallback_properties target)
     endif()
 
     # AAX category
-    set(aax_category_ints
-        0x00000000
-        0x00000001
-        0x00000002
-        0x00000004
-        0x00000008
-        0x00000010
-        0x00000020
-        0x00000040
-        0x00000080
-        0x00000100
-        0x00000200
-        0x00000400
-        0x00000800
-        0x00001000
-        0x00002000)
 
+    # The order of these strings is important, as the index of each string
+    # will be used to set an appropriate bit in the category bitfield.
     set(aax_category_strings
         ePlugInCategory_None
         ePlugInCategory_EQ
@@ -1841,11 +1835,29 @@ function(_juce_set_fallback_properties target)
 
     # Replace AAX category string with its integral representation
     get_target_property(actual_aax_category ${target} JUCE_AAX_CATEGORY)
-    list(FIND aax_category_strings ${actual_aax_category} aax_index)
 
-    if(aax_index GREATER_EQUAL 0)
-        list(GET aax_category_ints ${aax_index} aax_int_representation)
-        set_target_properties(${target} PROPERTIES JUCE_AAX_CATEGORY ${aax_int_representation})
+    set(aax_category_int "")
+
+    foreach(category_string IN LISTS actual_aax_category)
+        list(FIND aax_category_strings ${category_string} aax_index)
+
+        if(aax_index GREATER_EQUAL 0)
+            if(aax_index EQUAL 0)
+                set(aax_category_bit 0)
+            else()
+                set(aax_category_bit "1 << (${aax_index} - 1)")
+            endif()
+
+            if(aax_category_int STREQUAL "")
+                set(aax_category_int 0)
+            endif()
+
+            math(EXPR aax_category_int "${aax_category_int} | (${aax_category_bit})")
+        endif()
+    endforeach()
+
+    if(NOT aax_category_int STREQUAL "")
+        set_target_properties(${target} PROPERTIES JUCE_AAX_CATEGORY ${aax_category_int})
     endif()
 endfunction()
 
@@ -1875,6 +1887,7 @@ function(_juce_initialise_target target)
         BACKGROUND_BLE_ENABLED          # iOS only
         CUSTOM_XCASSETS_FOLDER          # iOS only
         TARGETED_DEVICE_FAMILY          # iOS only
+        REQUIRES_FULL_SCREEN            # iOS only
         ICON_BIG
         ICON_SMALL
         COMPANY_COPYRIGHT
@@ -1908,7 +1921,6 @@ function(_juce_initialise_target target)
         AU_EXPORT_PREFIX
         AU_SANDBOX_SAFE
         SUPPRESS_AU_PLIST_RESOURCE_USAGE
-        AAX_CATEGORY
         PLUGINHOST_AU                   # Set this true if you want to host AU plugins
         USE_LEGACY_COMPATIBILITY_PLUGIN_CODE
 
@@ -1925,6 +1937,7 @@ function(_juce_initialise_target target)
         HARDENED_RUNTIME_OPTIONS
         APP_SANDBOX_OPTIONS
         DOCUMENT_EXTENSIONS
+        AAX_CATEGORY
         IPHONE_SCREEN_ORIENTATIONS      # iOS only
         IPAD_SCREEN_ORIENTATIONS        # iOS only
         APP_GROUP_IDS)                  # iOS only
