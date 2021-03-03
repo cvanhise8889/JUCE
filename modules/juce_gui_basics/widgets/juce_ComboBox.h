@@ -276,6 +276,9 @@ public:
 
     /** Returns the PopupMenu object associated with the ComboBox. */
     const PopupMenu* getRootMenu() const noexcept { return &currentMenu; }
+    
+    /** Returns the Label object associated with the ComboBox. */
+    Label* getLabel() noexcept { return label.get(); }
 
     //==============================================================================
     /**
