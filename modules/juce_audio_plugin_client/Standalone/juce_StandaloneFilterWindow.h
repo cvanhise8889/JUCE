@@ -575,7 +575,11 @@ public:
                             bool autoOpenMidiDevices = false
                            #endif
                             )
-        : DocumentWindow (title, backgroundColour, DocumentWindow::minimiseButton | DocumentWindow::closeButton),
+        : DocumentWindow (title, backgroundColour, DocumentWindow::minimiseButton | DocumentWindow::closeButton
+#if JUCE_STANDALONE_FILTER_WINDOW_USE_FULLSCREEN
+| DocumentWindow::maximiseButton
+#endif
+),
           optionsButton ("Options")
     {
        #if JUCE_IOS || JUCE_ANDROID

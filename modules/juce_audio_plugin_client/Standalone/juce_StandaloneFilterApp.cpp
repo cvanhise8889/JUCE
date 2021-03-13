@@ -102,6 +102,10 @@ public:
         Desktop::getInstance().setKioskModeComponent (mainWindow.get(), false);
        #endif
 
+        #if JUCE_STANDALONE_FILTER_WINDOW_USE_FULLSCREEN
+        mainWindow->setFullscreen(true);
+        #endif
+
         mainWindow->setVisible (true);
     }
 
