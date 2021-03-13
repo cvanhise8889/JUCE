@@ -103,7 +103,7 @@ public:
        #endif
 
         #if JUCE_STANDALONE_FILTER_WINDOW_USE_FULLSCREEN
-        mainWindow->setFullscreen(true);
+        mainWindow->setFullScreen(true);
         #endif
 
         mainWindow->setVisible (true);
